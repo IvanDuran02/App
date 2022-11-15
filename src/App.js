@@ -1,6 +1,6 @@
 import '../wdyr';
 import React from 'react';
-import {LogBox} from 'react-native';
+import {LogBox, Dimensions, Keyboard} from 'react-native';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import Onyx from 'react-native-onyx';
@@ -29,25 +29,56 @@ LogBox.ignoreLogs([
 
 const fill = {flex: 1};
 
-const App = () => (
-    <GestureHandlerRootView style={fill}>
-        <ComposeProviders
-            components={[
-                OnyxProvider,
-                SafeAreaProvider,
-                SafeArea,
-                LocaleContextProvider,
-                HTMLEngineProvider,
-                WindowDimensionsProvider,
-            ]}
-        >
-            <CustomStatusBar />
-            <ErrorBoundary errorMessage="NewExpensify crash caught by error boundary">
-                <Expensify />
-            </ErrorBoundary>
-        </ComposeProviders>
-    </GestureHandlerRootView>
-);
+// Returns true if the screen is in portrait mode
+const isPortrait = () => {
+    const dim = Dimensions.get('screen');
+    return dim.height >= dim.width;
+};
+
+// A React Hook which updates when the orientation changes and returns whether the user is in 'PORTRAIT' or "LANDSCAPE"
+const useOrientation = () => {
+    // State to hold the connection status
+    const [orientation, setOrientation] = React.useState(
+        isPortrait() ? 'PORTRAIT' : 'LANDSCAPE',
+    );
+
+    React.useEffect(() => {
+        const callback = () => {
+            setOrientation(isPortrait() ? 'PORTRAIT' : 'LANDSCAPE');
+            Keyboard.dismiss();
+        };
+        Dimensions.addEventListener('change', callback);
+
+        return () => {
+            Dimensions.removeEventListener('change', callback);
+        };
+    }, []);
+
+    return orientation;
+};
+
+const App = () => {
+    useOrientation();
+    return (
+        <GestureHandlerRootView style={fill}>
+            <ComposeProviders
+                components={[
+                    OnyxProvider,
+                    SafeAreaProvider,
+                    SafeArea,
+                    LocaleContextProvider,
+                    HTMLEngineProvider,
+                    WindowDimensionsProvider,
+                ]}
+            >
+                <CustomStatusBar />
+                <ErrorBoundary errorMessage="NewExpensify crash caught by error boundary">
+                    <Expensify />
+                </ErrorBoundary>
+            </ComposeProviders>
+        </GestureHandlerRootView>
+    );
+};
 
 App.displayName = 'App';
 
